@@ -40,17 +40,21 @@ export const tools = [
   {
     name: "handoff_human",
     description:
-      "Escalate to a human agent with collected customer details (use when the request is outside the chatbot scope and pricing is quote-based).",
+      "Escalate to a human agent with collected customer details (use when the request is outside the chatbot scope and pricing is quote-based). On WhatsApp, the customer's number is already known to the system—omit phone_number unless you have no session phone in CONTEXT.",
     input_schema: {
       type: "object",
       properties: {
         customer_name: { type: "string" },
-        phone_number: { type: "string" },
+        phone_number: {
+          type: "string",
+          description:
+            "Optional on WhatsApp: omit and the server uses the session phone from CONTEXT. Only supply if CONTEXT has no customer phone."
+        },
         vehicle_info: { type: "string" },
         issue: { type: "string" },
         bot_summary: { type: "string" }
       },
-      required: ["customer_name", "phone_number", "issue", "bot_summary"]
+      required: ["customer_name", "issue", "bot_summary"]
     }
   }
 

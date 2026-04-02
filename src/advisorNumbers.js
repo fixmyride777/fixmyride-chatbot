@@ -1,5 +1,5 @@
 import { supabase } from "./supabase.js";
-import { config } from "./config.js";
+import { schema } from "./dbSchema.js";
 
 function normalizePhone(input) {
   const s = String(input ?? "").trim();
@@ -10,18 +10,13 @@ function normalizePhone(input) {
 }
 
 /**
- * Returns the active advisor WhatsApp/phone number for handoff (from Supabase).
- * Table/column names are configurable via env (see config.js).
+ * Returns an advisor WhatsApp/phone number for handoff (from Supabase; first row).
+ * Table/column names: src/dbSchema.js (see supabase.sql).
  */
 export async function getAdvisorPhoneForHandoff() {
-  const table = config.advisorNumbersTable;
-  const col = config.advisorPhoneColumn;
+  const { table, phoneColumn: col } = schema.advisorNumbers;
 
-  let q = supabase.from(table).select(col);
-  if (config.advisorFilterActiveOnly) {
-    q = q.eq("is_active", true);
-  }
-  const { data, error } = await q.limit(1).maybeSingle();
+  const { data, error } = await supabase.from(table).select(col).limit(1).maybeSingle();
 
   if (error) {
     return { phone: null, error: error.message };

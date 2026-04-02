@@ -1,4 +1,5 @@
 import { classifyIssue, getServiceCategories, getServiceSubcategories } from "./tools/impl.js";
+import { memorySessionKey } from "./memory.js";
 import { supabase } from "./supabase.js";
 
 const GREETING =
@@ -45,19 +46,21 @@ function pickByUserInput(items, userText, pickLabel, pickAlt = []) {
 }
 
 async function loadSession(sessionId) {
+  const key = memorySessionKey(sessionId);
   const { data, error } = await supabase
     .from("chat_sessions")
     .select("session_id,state")
-    .eq("session_id", sessionId)
+    .eq("session_id", key)
     .maybeSingle();
   if (error) throw new Error(`Supabase loadSession error: ${error.message}`);
   return data?.state ?? {};
 }
 
 async function saveSession(sessionId, state) {
+  const key = memorySessionKey(sessionId);
   const { error } = await supabase.from("chat_sessions").upsert(
     {
-      session_id: sessionId,
+      session_id: key,
       state
     },
     { onConflict: "session_id" }

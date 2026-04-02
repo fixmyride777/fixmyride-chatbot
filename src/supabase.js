@@ -13,4 +13,3 @@ export const supabase = createClient(
     global: { headers: { "X-Client-Info": "fixmyride-ai-agent-backend" } }
   }
 );
-

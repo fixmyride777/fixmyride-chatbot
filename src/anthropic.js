@@ -1,4 +1,5 @@
 import { config } from "./config.js";
+import { passFail } from "./passLog.js";
 
 export async function anthropicMessages(body) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -13,7 +14,7 @@ export async function anthropicMessages(body) {
 
   if (!res.ok) {
     const text = await res.text();
-    console.error("[pass] anthropic error", res.status, text.slice(0, 300));
+    passFail("anthropic", `${res.status} ${text.slice(0, 200)}`);
     throw new Error(`Anthropic error: ${res.status} ${text}`);
   }
 

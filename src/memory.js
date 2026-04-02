@@ -1,5 +1,23 @@
+import { randomUUID } from "node:crypto";
 import { config } from "./config.js";
+import { passOk } from "./passLog.js";
 import { supabase } from "./supabase.js";
+
+const devRunId = config.devSessionIsolation ? randomUUID() : null;
+
+if (devRunId) {
+  passOk("devSession", "new-run");
+}
+
+/**
+ * Maps the client session key (e.g. phone number or session_id) to the row key in Supabase.
+ * In development, prefixes with a new UUID on each server restart so memory does not carry over.
+ */
+export function memorySessionKey(sessionId) {
+  if (!sessionId) return null;
+  const base = String(sessionId);
+  return devRunId ? `dev:${devRunId}:${base}` : base;
+}
 
 function ttlCutoffIso() {
   return new Date(Date.now() - config.memoryTtlMs).toISOString();
@@ -7,11 +25,12 @@ function ttlCutoffIso() {
 
 export async function getSession(sessionId) {
   if (!sessionId) return null;
+  const key = memorySessionKey(sessionId);
 
   const { data, error } = await supabase
     .from("chat_sessions")
     .select("session_id,messages,updated_at")
-    .eq("session_id", sessionId)
+    .eq("session_id", key)
     .maybeSingle();
 
   if (error) throw new Error(`Supabase getSession error: ${error.message}`);
@@ -24,9 +43,11 @@ export async function getSession(sessionId) {
 }
 
 export async function setSession(sessionId, messages) {
+  const key = memorySessionKey(sessionId);
+  if (!key) return;
   await supabase.from("chat_sessions").upsert(
     {
-      session_id: sessionId,
+      session_id: key,
       messages
     },
     { onConflict: "session_id" }
@@ -34,10 +55,11 @@ export async function setSession(sessionId, messages) {
 }
 
 export async function setLastSentText(sessionId, text) {
-  if (!sessionId) return;
+  const key = memorySessionKey(sessionId);
+  if (!key) return;
   await supabase.from("chat_last_sent").upsert(
     {
-      session_id: sessionId,
+      session_id: key,
       text: String(text ?? "")
     },
     { onConflict: "session_id" }
@@ -46,11 +68,12 @@ export async function setLastSentText(sessionId, text) {
 
 export async function getLastSentText(sessionId) {
   if (!sessionId) return null;
+  const key = memorySessionKey(sessionId);
 
   const { data, error } = await supabase
     .from("chat_last_sent")
     .select("text,updated_at")
-    .eq("session_id", sessionId)
+    .eq("session_id", key)
     .maybeSingle();
 
   if (error) throw new Error(`Supabase getLastSentText error: ${error.message}`);
@@ -92,4 +115,3 @@ export async function cleanupSessions() {
   await supabase.from("chat_last_sent").delete().lt("updated_at", cutoff);
   await supabase.from("chat_seen_message_ids").delete().lt("seen_at", cutoff);
 }
-

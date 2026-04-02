@@ -40,19 +40,19 @@ create trigger chat_last_sent_set_updated_at
 before update on public.chat_last_sent
 for each row execute function public.set_updated_at();
 
--- Advisor WhatsApp number(s) used when handoff_human runs (server reads from here).
+-- Advisor WhatsApp number(s) used when handoff_human runs (server reads one row from here).
 create table if not exists public.advisor_numbers (
   id uuid primary key default gen_random_uuid(),
   phone_number text not null,
   created_at timestamptz not null default now()
 );
 
-comment on table public.advisor_numbers is 'Active advisor numbers for chatbot human handoff; handoff_human loads one active row.';
+comment on table public.advisor_numbers is 'Advisor numbers for chatbot human handoff; handoff_human loads one row (e.g. limit 1).';
 
--- Single-row (or latest) personality text edited by admin; prepended to the LLM system prompt.
+-- Single-row (or latest) personality edited by admin; appended as ADMIN SETTINGS in the LLM system prompt.
 create table if not exists public.chatbot_personality (
   id uuid primary key default gen_random_uuid(),
-  content text not null default '',
+  instructions text not null default '',
   updated_at timestamptz not null default now()
 );
 

@@ -1,36 +1,54 @@
 import { supabase } from "./supabase.js";
-import { config } from "./config.js";
+import { schema } from "./dbSchema.js";
+import { passFail, passOk } from "./passLog.js";
 
 /**
- * Loads admin-edited personality text from Supabase (see supabase.sql).
- * Prepended to the base system prompt on each agent run.
+ * Loads admin-edited personality from Supabase (see supabase.sql).
+ * Merged into the system prompt as ADMIN SETTINGS (see agent.js).
  */
 export async function getChatbotPersonality() {
-  const table = config.chatbotPersonalityTable;
-  const col = config.chatbotPersonalityContentColumn;
+  const { table, instructionsColumn: col, orderByColumn, orderAscending } =
+    schema.chatbotPersonality;
 
   try {
-    let q = supabase.from(table).select(col);
-
-    const orderCol = config.chatbotPersonalityOrderColumn?.trim();
-    if (orderCol) {
-      q = q.order(orderCol, {
-        ascending: config.chatbotPersonalityOrderAscending
-      });
-    }
-
-    const { data, error } = await q.limit(1).maybeSingle();
+    const { data, error } = await supabase
+      .from(table)
+      .select("*")
+      .order(orderByColumn, { ascending: orderAscending })
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
-      console.error("[pass] personality query", error.message);
+      passFail("personality", error.message);
+      console.log("[personality] result", { ok: false, error: error.message });
       return "";
     }
 
-    const raw = data?.[col];
-    if (raw == null) return "";
-    return String(raw).trim();
+    if (!data || typeof data !== "object") {
+      passOk("personality", "empty-no-row");
+      console.log("[personality] result", { ok: true, instructions: "", reason: "no-row" });
+      return "";
+    }
+
+    const raw = data.instructions ?? data[col] ?? data.text;
+    if (raw == null || String(raw).trim() === "") {
+      passOk("personality", "empty-column");
+      console.log("[personality] result", {
+        ok: true,
+        instructions: "",
+        reason: "empty-column",
+        columns: Object.keys(data)
+      });
+      return "";
+    }
+
+    const text = String(raw).trim();
+    passOk("personality", `${text.length}chars`);
+
+    return text;
   } catch (e) {
-    console.error("[pass] personality", e?.message);
+    passFail("personality", e?.message);
+    console.log("[personality] result", { ok: false, error: String(e?.message ?? e) });
     return "";
   }
 }

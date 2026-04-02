@@ -1,7 +1,9 @@
 import { config } from "./config.js";
+import { passFail, passOk } from "./passLog.js";
 
 export async function sendWasenderMessage({ to, text }) {
   if (!config.wasenderApiToken) {
+    passFail("wasender", "Missing WASENDER_API_TOKEN");
     throw new Error("Missing WASENDER_API_TOKEN in environment.");
   }
 
@@ -23,12 +25,12 @@ export async function sendWasenderMessage({ to, text }) {
   }
 
   if (!res.ok) {
-    console.error("[pass] wasender", res.status, rawText.slice(0, 200));
+    passFail("wasender", `${res.status} ${rawText.slice(0, 200)}`);
     throw new Error(
       `Wasender error: ${res.status} ${json ? JSON.stringify(json) : rawText}`
     );
   }
 
+  passOk("wasender");
   return json ?? { ok: true, status: res.status, body: rawText };
 }
-

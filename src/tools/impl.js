@@ -2,7 +2,16 @@
 import axios from "axios";
 import { getAdvisorPhoneForHandoff } from "../advisorNumbers.js";
 import { config } from "../config.js";
+import { passFail } from "../passLog.js";
 import { sendWasenderMessage } from "../wasender.js";
+
+function normalizeCustomerPhone(input) {
+  const s = String(input ?? "").trim();
+  if (!s) return "";
+  const hasPlus = s.startsWith("+");
+  const digits = s.replace(/[^\d]/g, "");
+  return hasPlus ? `+${digits}` : digits;
+}
 
 export async function sayHoldOn({ phone, text }) {
   try {
@@ -12,7 +21,6 @@ export async function sayHoldOn({ phone, text }) {
     });
     return { ok: response.status === 200, sent: response.status === 200 };
   } catch (error) {
-    console.error("[pass] sayHoldOn", error?.message);
     return { ok: false, sent: false, error: error.message };
   }
 }
@@ -63,42 +71,56 @@ function formatAdvisorHandoffText(p) {
   return lines.join("\n");
 }
 
-export async function handoffHuman(payload) {
+export async function handoffHuman(payload, ctx = {}) {
   try {
+    const fromTool = normalizeCustomerPhone(payload.phone_number);
+    const fromSession = normalizeCustomerPhone(ctx.customerPhoneNumber);
+    const customerPhone = fromTool || fromSession;
+
     const { phone: advisorPhone, error: advisorErr } = await getAdvisorPhoneForHandoff();
     if (!advisorPhone) {
       const msg =
         advisorErr ||
         "No advisor number found in Supabase. Add a row to the advisor numbers table.";
-      console.error("[pass] handoffHuman no advisor", advisorErr || msg);
       return { ok: false, result: null, error: msg };
+    }
+
+    if (!customerPhone) {
+      return {
+        ok: false,
+        result: null,
+        error:
+          "Customer phone missing: pass phone_number or ensure the request includes the chat session phone (e.g. WhatsApp webhook)."
+      };
     }
 
     const body = {
       customer_name: payload.customer_name,
-      phone_number: payload.phone_number,
+      phone_number: customerPhone,
       vehicle_info: payload.vehicle_info ?? "",
       issue: payload.issue,
       bot_summary: payload.bot_summary,
       advisor_phone: advisorPhone
     };
 
-    const response = await axios.post(`https://fixmyride.app.n8n.cloud/webhook/handoff-human-w`, body);
-
-    if (response.status === 200 && config.handoffSendWasenderToAdvisor && config.wasenderApiToken) {
+    if (config.wasenderApiToken) {
       try {
         await sendWasenderMessage({
           to: advisorPhone,
-          text: formatAdvisorHandoffText(payload)
+          text: formatAdvisorHandoffText(body)
         });
       } catch (e) {
-        console.error("[pass] handoffHuman advisor Wasender", e?.message);
+        passFail("handoff:advisorNotify", e?.message);
+        return {
+          ok: false,
+          result: null,
+          error: e?.message || "Failed to notify advisor via Wasender"
+        };
       }
     }
 
-    return { ok: response.status === 200, result: response.data, advisor_phone: advisorPhone };
+    return { ok: true, result: body, advisor_phone: advisorPhone };
   } catch (error) {
-    console.error("[pass] handoffHuman", error?.message);
     return { ok: false, result: null, error: error.message };
   }
 }

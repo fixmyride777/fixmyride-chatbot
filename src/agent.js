@@ -1,5 +1,6 @@
 import { anthropicMessages } from "./anthropic.js";
 import { getChatbotPersonality } from "./chatbotPersonality.js";
+import { passOk } from "./passLog.js";
 import { tools } from "./tools/definitions.js";
 import { runTool } from "./tools/runner.js";
 import { prompt } from "./tools/prompt.js";
@@ -27,14 +28,6 @@ export async function runAgent({
       ? `\n\nCONTEXT\nCustomer phone number: ${customerPhoneNumber}\n`
       : "") +
     adminBlock;
-
-  console.log("[pass] agent", {
-    model,
-    personalityChars: personality.length,
-    systemChars: systemPrompt.length,
-    conversationLength: conversation.length,
-    userMsgChars: String(userMessage ?? "").length
-  });
 
   const messages = [
     ...conversation,
@@ -64,12 +57,7 @@ export async function runAgent({
       messages
     });
 
-    console.log("[pass] agent:round", {
-      round: anthropicRound,
-      id: response?.id,
-      stopReason: response?.stop_reason,
-      usage: response?.usage
-    });
+    passOk(`anthropic·${anthropicRound}`);
 
     const content = Array.isArray(response?.content) ? response.content : [];
     const toolUses = content.filter(block => block.type === "tool_use");
@@ -81,19 +69,13 @@ export async function runAgent({
         content
       });
 
-      const replyLen = textBlocks.map(t => t.text).join("\n").trim().length;
-      console.log("[pass] agent:done", { rounds: anthropicRound, replyLength: replyLen });
+      passOk("agent");
       return {
         reply: textBlocks.map(t => t.text).join("\n").trim(),
         raw: response,
         messages
       };
     }
-
-    console.log("[pass] agent:tools", {
-      round: anthropicRound,
-      names: toolUses.map(t => t.name)
-    });
 
     messages.push({
       role: "assistant",
@@ -102,7 +84,9 @@ export async function runAgent({
 
     const toolResults = [];
     for (const toolUse of toolUses) {
-      const result = await runTool(toolUse.name, toolUse.input);
+      const result = await runTool(toolUse.name, toolUse.input, {
+        customerPhoneNumber
+      });
       toolResults.push({
         type: "tool_result",
         tool_use_id: toolUse.id,
