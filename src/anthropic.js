@@ -13,9 +13,9 @@ export async function anthropicMessages(body) {
 
   if (!res.ok) {
     const text = await res.text();
+    console.error("[pass] anthropic error", res.status, text.slice(0, 300));
     throw new Error(`Anthropic error: ${res.status} ${text}`);
   }
 
   return res.json();
 }
-

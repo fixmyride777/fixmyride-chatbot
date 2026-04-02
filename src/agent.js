@@ -28,12 +28,12 @@ export async function runAgent({
       : "") +
     adminBlock;
 
-  console.log("[agent] start", {
+  console.log("[pass] agent", {
     model,
-    maxTokens,
+    personalityChars: personality.length,
+    systemChars: systemPrompt.length,
     conversationLength: conversation.length,
-    userMessageLength: userMessage?.length ?? 0,
-    personalityChars: personality.length
+    userMsgChars: String(userMessage ?? "").length
   });
 
   const messages = [
@@ -44,7 +44,11 @@ export async function runAgent({
     }
   ];
 
+  let anthropicRound = 0;
+
   while (true) {
+    anthropicRound += 1;
+
     const response = await anthropicMessages({
       model,
       max_tokens: maxTokens,
@@ -60,21 +64,25 @@ export async function runAgent({
       messages
     });
 
+    console.log("[pass] agent:round", {
+      round: anthropicRound,
+      id: response?.id,
+      stopReason: response?.stop_reason,
+      usage: response?.usage
+    });
+
     const content = Array.isArray(response?.content) ? response.content : [];
     const toolUses = content.filter(block => block.type === "tool_use");
     const textBlocks = content.filter(block => block.type === "text");
 
     if (toolUses.length === 0) {
-      // IMPORTANT: persist the final assistant message into memory,
-      // otherwise next request looks like "first assistant message" again.
       messages.push({
         role: "assistant",
         content
       });
 
-      console.log("[agent] done", {
-        replyLength: textBlocks.map(t => t.text).join("\n").trim().length
-      });
+      const replyLen = textBlocks.map(t => t.text).join("\n").trim().length;
+      console.log("[pass] agent:done", { rounds: anthropicRound, replyLength: replyLen });
       return {
         reply: textBlocks.map(t => t.text).join("\n").trim(),
         raw: response,
@@ -82,10 +90,10 @@ export async function runAgent({
       };
     }
 
-    console.log(
-      "[agent] tool_use",
-      toolUses.map(t => ({ name: t.name, id: t.id }))
-    );
+    console.log("[pass] agent:tools", {
+      round: anthropicRound,
+      names: toolUses.map(t => t.name)
+    });
 
     messages.push({
       role: "assistant",
@@ -94,7 +102,6 @@ export async function runAgent({
 
     const toolResults = [];
     for (const toolUse of toolUses) {
-      console.log("[agent] tool_run", toolUse.name);
       const result = await runTool(toolUse.name, toolUse.input);
       toolResults.push({
         type: "tool_result",
@@ -109,4 +116,3 @@ export async function runAgent({
     });
   }
 }
-

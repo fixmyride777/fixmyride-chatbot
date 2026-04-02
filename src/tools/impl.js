@@ -6,15 +6,13 @@ import { sendWasenderMessage } from "../wasender.js";
 
 export async function sayHoldOn({ phone, text }) {
   try {
-    console.log("[sayHoldOn] sending", { phone, textLength: String(text ?? "").length });
     const response = await axios.post(`https://fixmyride.app.n8n.cloud/webhook/say-hold-on-w`, {
       phone,
       text
     });
-    console.log("[sayHoldOn] response", { status: response.status });
     return { ok: response.status === 200, sent: response.status === 200 };
   } catch (error) {
-    console.log("[sayHoldOn] error", error?.message);
+    console.error("[pass] sayHoldOn", error?.message);
     return { ok: false, sent: false, error: error.message };
   }
 }
@@ -72,15 +70,9 @@ export async function handoffHuman(payload) {
       const msg =
         advisorErr ||
         "No advisor number found in Supabase. Add a row to the advisor numbers table.";
-      console.log("[handoffHuman] missing advisor", { advisorErr });
+      console.error("[pass] handoffHuman no advisor", advisorErr || msg);
       return { ok: false, result: null, error: msg };
     }
-
-    console.log("[handoffHuman] sending", {
-      hasName: Boolean(payload?.customer_name),
-      hasPhone: Boolean(payload?.phone_number),
-      hasAdvisor: true
-    });
 
     const body = {
       customer_name: payload.customer_name,
@@ -100,13 +92,13 @@ export async function handoffHuman(payload) {
           text: formatAdvisorHandoffText(payload)
         });
       } catch (e) {
-        console.log("[handoffHuman] advisor Wasender notify failed", e?.message);
+        console.error("[pass] handoffHuman advisor Wasender", e?.message);
       }
     }
 
     return { ok: response.status === 200, result: response.data, advisor_phone: advisorPhone };
   } catch (error) {
-    console.log("[handoffHuman] error", error?.message);
+    console.error("[pass] handoffHuman", error?.message);
     return { ok: false, result: null, error: error.message };
   }
 }

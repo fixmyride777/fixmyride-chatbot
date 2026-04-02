@@ -7,19 +7,29 @@ import {
 } from "./impl.js";
 
 export async function runTool(name, input) {
+  let result;
   switch (name) {
     case "say_hold_on":
-      return await sayHoldOn(input);
+      result = await sayHoldOn(input);
+      break;
     case "get_service_categories":
-      return await getServiceCategories();
+      result = await getServiceCategories();
+      break;
     case "get_service_subcategory":
-      return await getServiceSubcategories(input.category_id);
+      result = await getServiceSubcategories(input.category_id);
+      break;
     case "classify_issue":
-      return await classifyIssue(input.category, input.subcategory);
+      result = await classifyIssue(input.category, input.subcategory);
+      break;
     case "handoff_human":
-      return await handoffHuman(input);
+      result = await handoffHuman(input);
+      break;
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
+
+  const ok = result && typeof result === "object" && "ok" in result ? result.ok : undefined;
+  console.log("[pass] tool", name, { ok });
+  return result;
 }
 

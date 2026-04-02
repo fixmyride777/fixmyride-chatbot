@@ -23,6 +23,7 @@ export async function sendWasenderMessage({ to, text }) {
   }
 
   if (!res.ok) {
+    console.error("[pass] wasender", res.status, rawText.slice(0, 200));
     throw new Error(
       `Wasender error: ${res.status} ${json ? JSON.stringify(json) : rawText}`
     );

@@ -22,16 +22,15 @@ export async function getChatbotPersonality() {
     const { data, error } = await q.limit(1).maybeSingle();
 
     if (error) {
-      console.log("[chatbotPersonality] query error", error.message);
+      console.error("[pass] personality query", error.message);
       return "";
     }
 
     const raw = data?.[col];
     if (raw == null) return "";
-    const text = String(raw).trim();
-    return text;
+    return String(raw).trim();
   } catch (e) {
-    console.log("[chatbotPersonality] error", e?.message);
+    console.error("[pass] personality", e?.message);
     return "";
   }
 }

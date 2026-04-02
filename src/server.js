@@ -113,12 +113,6 @@ const RunAgentBody = z.object({
 
 app.post("/agent/run", async (req, res) => {
   try {
-    console.log("[agent/run] incoming", {
-      hasConversation: Array.isArray(req.body?.conversation),
-      phone_number: req.body?.phone_number,
-      session_id: req.body?.session_id
-    });
-
     const body = RunAgentBody.parse(req.body);
     await cleanupSessions();
 
@@ -126,11 +120,7 @@ app.post("/agent/run", async (req, res) => {
     const session = sessionId ? await getSession(sessionId) : null;
     const conversation = trimConversation(body.conversation || session?.messages || []);
 
-    console.log("[agent/run] memory", {
-      sessionId,
-      hadStoredConversation: Boolean(session?.messages?.length),
-      conversationLength: conversation.length
-    });
+    console.log("[pass] agent/run", { sessionId, conversationLength: conversation.length });
 
     const result = await runAgent({
       userMessage: body.message,
@@ -144,8 +134,7 @@ app.post("/agent/run", async (req, res) => {
       await setSession(sessionId, trimConversation(result.messages));
     }
 
-    console.log("[agent/run] reply", {
-      sessionId,
+    console.log("[pass] agent/run done", {
       replyLength: result.reply?.length ?? 0,
       messagesLength: result.messages?.length ?? 0
     });
@@ -153,7 +142,7 @@ app.post("/agent/run", async (req, res) => {
     res.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.log("[agent/run] error", message);
+    console.error("[pass] agent/run error", message);
     res.status(400).json({ ok: false, error: message });
   }
 });
@@ -173,33 +162,27 @@ app.post("/webhook/get-whatsapp-message", async (req, res) => {
     const fromMe = Boolean(msg?.key?.fromMe ?? msg?.fromMe);
     const messageId = msg?.key?.id ?? msg?.id ?? msg?.messageId;
 
-    console.log("[webhook/get-whatsapp-message] meta", {
-      fromMe,
-      messageId,
-      hasBodyWrapper: Boolean(req.body?.body)
-    });
-
     // Prevent infinite loops: ignore events for messages sent by our own number
     if (fromMe) {
-      console.log("[webhook/get-whatsapp-message] ignored (fromMe)");
+      console.log("[pass] webhook skip", { reason: "fromMe" });
       return res.json({ ok: true, ignored: true, reason: "fromMe" });
     }
 
     // Prevent duplicates: same provider event may arrive twice
     if (messageId && (await hasSeenMessageId(messageId))) {
-      console.log("[webhook/get-whatsapp-message] ignored (duplicate)", messageId);
+      console.log("[pass] webhook skip", { reason: "duplicate", messageId });
       return res.json({ ok: true, ignored: true, reason: "duplicate", messageId });
     }
 
     if (!message) {
-      console.log("[webhook/get-whatsapp-message] missing messageBody");
+      console.error("[pass] webhook error", "missing messageBody");
       return res.status(400).json({
         ok: false,
         error: "Missing data.messages.messageBody"
       });
     }
     if (!phoneNumber) {
-      console.log("[webhook/get-whatsapp-message] missing phone number");
+      console.error("[pass] webhook error", "missing phone");
       return res.status(400).json({
         ok: false,
         error: "Missing data.messages.key.cleanedSenderPn"
@@ -212,17 +195,19 @@ app.post("/webhook/get-whatsapp-message", async (req, res) => {
 
     // Extra loop protection: if provider echoes our own outgoing text back as an "incoming" event
     if (lastSent && String(message).trim() === String(lastSent).trim()) {
-      console.log("[webhook/get-whatsapp-message] ignored (echoed outbound text)");
+      console.log("[pass] webhook skip", { reason: "echo" });
       return res.json({ ok: true, ignored: true, reason: "echo" });
     }
 
-    console.log("[webhook/get-whatsapp-message] extracted", {
-      phoneNumber,
-      messageLength: message.length
-    });
-
     const session = await getSession(phoneNumber);
     const conversation = trimConversation(session?.messages || []);
+
+    console.log("[pass] webhook", {
+      messageId,
+      phoneNumber,
+      messageLength: message.length,
+      conversationLength: conversation.length
+    });
 
     const result = await runAgent({
       userMessage: message,
@@ -232,20 +217,15 @@ app.post("/webhook/get-whatsapp-message", async (req, res) => {
 
     await setSession(phoneNumber, trimConversation(result.messages));
 
-    console.log("[webhook/get-whatsapp-message] reply", {
-      phoneNumber,
-      replyLength: result.reply?.length ?? 0,
-      messagesLength: result.messages?.length ?? 0
-    });
-
-    console.log("[webhook/get-whatsapp-message] wasender send start", {
-      to: phoneNumber
-    });
     const wasender = await sendWasenderMessage({
       to: phoneNumber,
       text: result.reply
     });
-    console.log("[webhook/get-whatsapp-message] wasender send ok");
+
+    console.log("[pass] webhook done", {
+      replyLength: result.reply?.length ?? 0,
+      messagesLength: result.messages?.length ?? 0
+    });
     await setLastSentText(phoneNumber, result.reply);
 
     res.json({
@@ -257,7 +237,7 @@ app.post("/webhook/get-whatsapp-message", async (req, res) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.log("[webhook/get-whatsapp-message] error", message);
+    console.error("[pass] webhook error", message);
     res.status(400).json({ ok: false, error: message });
   }
 });
