@@ -39,3 +39,26 @@ drop trigger if exists chat_last_sent_set_updated_at on public.chat_last_sent;
 create trigger chat_last_sent_set_updated_at
 before update on public.chat_last_sent
 for each row execute function public.set_updated_at();
+
+-- Advisor WhatsApp number(s) used when handoff_human runs (server reads from here).
+create table if not exists public.advisor_numbers (
+  id uuid primary key default gen_random_uuid(),
+  phone_number text not null,
+  created_at timestamptz not null default now()
+);
+
+comment on table public.advisor_numbers is 'Active advisor numbers for chatbot human handoff; handoff_human loads one active row.';
+
+-- Single-row (or latest) personality text edited by admin; prepended to the LLM system prompt.
+create table if not exists public.chatbot_personality (
+  id uuid primary key default gen_random_uuid(),
+  content text not null default '',
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists chatbot_personality_set_updated_at on public.chatbot_personality;
+create trigger chatbot_personality_set_updated_at
+before update on public.chatbot_personality
+for each row execute function public.set_updated_at();
+
+comment on table public.chatbot_personality is 'Admin-edited assistant tone and style; agent loads one row (prefer order by updated_at desc).';

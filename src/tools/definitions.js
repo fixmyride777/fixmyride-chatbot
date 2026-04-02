@@ -38,27 +38,19 @@ export const tools = [
     }
   },
   {
-    name: "search_parts_inventory",
-    description: "Checks whether the required part like tyre, battery, or compatible item is available.",
+    name: "handoff_human",
+    description:
+      "Escalate to a human agent with collected customer details (use when the request is outside the chatbot scope and pricing is quote-based).",
     input_schema: {
       type: "object",
       properties: {
-        category: { type: "string" },
-        subcategory: { type: "string" },
-        vehicle_specs: { type: "string" }
-      },
-      required: ["category", "subcategory", "vehicle_specs"]
-    }
-  },
-  {
-    name: "send_booking_link_whatsapp",
-    description: "Send the FixMyRide booking website link and the Fieldd customer app download link to the caller via WhatsApp.",
-    input_schema: {
-      type: "object",
-      properties: {
+        customer_name: { type: "string" },
         phone_number: { type: "string" },
+        vehicle_info: { type: "string" },
+        issue: { type: "string" },
+        bot_summary: { type: "string" }
       },
-      required: ["phone_number"]
+      required: ["customer_name", "phone_number", "issue", "bot_summary"]
     }
   }
 

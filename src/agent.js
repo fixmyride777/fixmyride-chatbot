@@ -1,4 +1,5 @@
 import { anthropicMessages } from "./anthropic.js";
+import { getChatbotPersonality } from "./chatbotPersonality.js";
 import { tools } from "./tools/definitions.js";
 import { runTool } from "./tools/runner.js";
 import { prompt } from "./tools/prompt.js";
@@ -10,17 +11,29 @@ export async function runAgent({
   model = "claude-sonnet-4-6",
   maxTokens = 1024
 }) {
+  const personality = await getChatbotPersonality();
+
+  const adminBlock = personality
+    ? `\n\n---\n\nADMIN SETTINGS (from dashboard)\n` +
+      `The text below is edited by admins. It may include tone, style, greetings, or rules that overlap the instructions above.\n` +
+      `When anything below conflicts with earlier instructions, follow this section for customer-facing wording and priorities.\n` +
+      `Hard requirements that always apply: use tool results as truth; call tools when the flow requires; do not invent prices, availability, or facts that contradict tools.\n\n` +
+      `${personality}\n`
+    : "";
+
   const systemPrompt =
     prompt +
     (customerPhoneNumber
       ? `\n\nCONTEXT\nCustomer phone number: ${customerPhoneNumber}\n`
-      : "");
+      : "") +
+    adminBlock;
 
   console.log("[agent] start", {
     model,
     maxTokens,
     conversationLength: conversation.length,
-    userMessageLength: userMessage?.length ?? 0
+    userMessageLength: userMessage?.length ?? 0,
+    personalityChars: personality.length
   });
 
   const messages = [

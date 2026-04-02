@@ -1,5 +1,8 @@
 // Replace these implementations with your real integrations.
 import axios from "axios";
+import { getAdvisorPhoneForHandoff } from "../advisorNumbers.js";
+import { config } from "../config.js";
+import { sendWasenderMessage } from "../wasender.js";
 
 export async function sayHoldOn({ phone, text }) {
   try {
@@ -50,27 +53,60 @@ export async function classifyIssue(category, subcategory) {
   }
 }
 
-export async function searchPartsInventory(category, subcategory, vehicle_specs) {
-  try {
-    console.log("[searchPartsInventory] sending", { category, subcategory, vehicle_specs });
-    const response = await axios.post(`https://fixmyride.app.n8n.cloud/webhook/search-parts-inventory-w`, {
-      category,
-      subcategory,
-      vehicle_specs
-    });
-    return { ok: response.status === 200, inventory: response.data };
-  } catch (error) {
-    return { ok: false, response: null, error: error.message };
-  }
+function formatAdvisorHandoffText(p) {
+  const lines = [
+    "FixMyRide — handoff",
+    `Customer: ${p.customer_name}`,
+    `Phone: ${p.phone_number}`,
+    p.vehicle_info ? `Vehicle: ${p.vehicle_info}` : null,
+    `Issue: ${p.issue}`,
+    `Summary: ${p.bot_summary}`
+  ].filter(Boolean);
+  return lines.join("\n");
 }
 
-export async function sendBookingLinkWhatsapp(phoneNumber) {
+export async function handoffHuman(payload) {
   try {
-    const response = await axios.post(`https://fixmyride.app.n8n.cloud/webhook/send-link-whatsapp-w`, {
-      phone_number: phoneNumber
+    const { phone: advisorPhone, error: advisorErr } = await getAdvisorPhoneForHandoff();
+    if (!advisorPhone) {
+      const msg =
+        advisorErr ||
+        "No advisor number found in Supabase. Add a row to the advisor numbers table.";
+      console.log("[handoffHuman] missing advisor", { advisorErr });
+      return { ok: false, result: null, error: msg };
+    }
+
+    console.log("[handoffHuman] sending", {
+      hasName: Boolean(payload?.customer_name),
+      hasPhone: Boolean(payload?.phone_number),
+      hasAdvisor: true
     });
-    return { ok: response.status === 200, response: response.data };
+
+    const body = {
+      customer_name: payload.customer_name,
+      phone_number: payload.phone_number,
+      vehicle_info: payload.vehicle_info ?? "",
+      issue: payload.issue,
+      bot_summary: payload.bot_summary,
+      advisor_phone: advisorPhone
+    };
+
+    const response = await axios.post(`https://fixmyride.app.n8n.cloud/webhook/handoff-human-w`, body);
+
+    if (response.status === 200 && config.handoffSendWasenderToAdvisor && config.wasenderApiToken) {
+      try {
+        await sendWasenderMessage({
+          to: advisorPhone,
+          text: formatAdvisorHandoffText(payload)
+        });
+      } catch (e) {
+        console.log("[handoffHuman] advisor Wasender notify failed", e?.message);
+      }
+    }
+
+    return { ok: response.status === 200, result: response.data, advisor_phone: advisorPhone };
   } catch (error) {
-    return { ok: false, response: null, error: error.message };
+    console.log("[handoffHuman] error", error?.message);
+    return { ok: false, result: null, error: error.message };
   }
 }

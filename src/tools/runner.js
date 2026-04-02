@@ -3,8 +3,7 @@ import {
   getServiceCategories,
   getServiceSubcategories,
   classifyIssue,
-  searchPartsInventory,
-  sendBookingLinkWhatsapp
+  handoffHuman
 } from "./impl.js";
 
 export async function runTool(name, input) {
@@ -17,10 +16,8 @@ export async function runTool(name, input) {
       return await getServiceSubcategories(input.category_id);
     case "classify_issue":
       return await classifyIssue(input.category, input.subcategory);
-    case "search_parts_inventory":
-      return await searchPartsInventory(input.category, input.subcategory, input.vehicle_specs);
-    case "send_booking_link_whatsapp":
-      return await sendBookingLinkWhatsapp(input.phone_number);
+    case "handoff_human":
+      return await handoffHuman(input);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }

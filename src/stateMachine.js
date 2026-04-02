@@ -1,9 +1,4 @@
-import {
-  classifyIssue,
-  getServiceCategories,
-  getServiceSubcategories,
-  sendBookingLinkWhatsapp
-} from "./tools/impl.js";
+import { classifyIssue, getServiceCategories, getServiceSubcategories } from "./tools/impl.js";
 import { supabase } from "./supabase.js";
 
 const GREETING =
@@ -219,12 +214,18 @@ export async function handleWhatsAppMessage({ sessionId, text }) {
     }
 
     if (action.action === "allow_service") {
-      const sent = await sendBookingLinkWhatsapp(sessionId);
       state.completed_actions = [...(state.completed_actions ?? []), action.action];
       state.stage = "done";
       await saveSession(sessionId, state);
-      if (!sent?.ok) return { reply: "I couldn’t send the booking link right now. Want a human agent?", state };
-      return { reply: "Sent you the booking link on WhatsApp 👍", state };
+      return {
+        reply:
+          "Book your appointment:\n" +
+          "https://fixmyride.fieldd.co\n\n" +
+          "Fieldd customer app download:\n" +
+          "https://play.google.com/store/apps/details?id=com.fieldd.clientdemo\n\n" +
+          "Please keep your car registration card (mulkiya) ready 👍",
+        state
+      };
     }
 
     // Unknown action: stop safely
