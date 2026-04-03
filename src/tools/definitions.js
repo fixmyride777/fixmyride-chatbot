@@ -20,7 +20,7 @@ export const tools = [
   {
     name: "get_service_subcategory",
     description:
-      "Fetch follow-up options for one main area. Show this numbered list only after the main area is known and the customer still needs to pick a specific service.",
+      "Fetch follow-up service options for one main area. Use results to match the customer’s issue and map to classify_issue—do not show a numbered list to the customer; confirm in natural language.",
     input_schema: {
       type: "object",
       properties: { category_id: { type: "string" } },
