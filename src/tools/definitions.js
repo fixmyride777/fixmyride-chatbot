@@ -13,12 +13,14 @@ export const tools = [
   },
   {
     name: "get_service_categories",
-    description: "Fetch all active service categories.",
+    description:
+      "Fetch active service areas for routing. Use to match the customer’s issue to options; do not dump the full list to the customer at the start—ask their issue first.",
     input_schema: { type: "object", properties: {}, required: [] }
   },
   {
     name: "get_service_subcategory",
-    description: "Fetch all active service subcategories for a category.",
+    description:
+      "Fetch follow-up options for one main area. Show this numbered list only after the main area is known and the customer still needs to pick a specific service.",
     input_schema: {
       type: "object",
       properties: { category_id: { type: "string" } },

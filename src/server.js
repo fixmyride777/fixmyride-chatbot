@@ -14,6 +14,7 @@ import {
 } from "./memory.js";
 import { passFail, passOk } from "./passLog.js";
 import { sendWasenderMessage } from "./wasender.js";
+import { bufferIncomingMessage, runSerialForPhone } from "./phoneQueue.js";
 
 function trimConversation(messages) {
   const max = Number(config.maxConversationMessages || 0);
@@ -191,45 +192,58 @@ app.post("/webhook/get-whatsapp-message", async (req, res) => {
 
     if (messageId) await markSeenMessageId(messageId);
 
-    const lastSent = await getLastSentText(phoneNumber);
+    const jobVersion = bufferIncomingMessage(phoneNumber, message);
 
-    // Extra loop protection: if provider echoes our own outgoing text back as an "incoming" event
-    if (lastSent && String(message).trim() === String(lastSent).trim()) {
-      passOk("webhook", "skipped-echo");
-      return res.json({ ok: true, ignored: true, reason: "echo" });
-    }
+    const responseBody = await runSerialForPhone(
+      phoneNumber,
+      jobVersion,
+      async ({ combinedMessage, latestMessage }) => {
+        const lastSent = await getLastSentText(phoneNumber);
 
-    const session = await getSession(phoneNumber);
-    passOk("session.load");
+        // Extra loop protection: if provider echoes our own outgoing text back as an "incoming" event
+        if (
+          lastSent &&
+          String(latestMessage).trim() === String(lastSent).trim()
+        ) {
+          passOk("webhook", "skipped-echo");
+          return { ok: true, ignored: true, reason: "echo" };
+        }
 
-    const conversation = trimConversation(session?.messages || []);
+        const session = await getSession(phoneNumber);
+        passOk("session.load");
 
-    const result = await runAgent({
-      userMessage: message,
-      conversation,
-      customerPhoneNumber: phoneNumber
-    });
+        const conversation = trimConversation(session?.messages || []);
 
-    await setSession(phoneNumber, trimConversation(result.messages));
-    passOk("session.save");
+        const result = await runAgent({
+          userMessage: combinedMessage,
+          conversation,
+          customerPhoneNumber: phoneNumber
+        });
 
-    const wasender = await sendWasenderMessage({
-      to: phoneNumber,
-      text: result.reply
-    });
+        await setSession(phoneNumber, trimConversation(result.messages));
+        passOk("session.save");
 
-    await setLastSentText(phoneNumber, result.reply);
-    passOk("lastSent.save");
+        const wasender = await sendWasenderMessage({
+          to: phoneNumber,
+          text: result.reply
+        });
 
-    passOk("webhook");
+        await setLastSentText(phoneNumber, result.reply);
+        passOk("lastSent.save");
 
-    res.json({
-      ok: true,
-      phone_number: phoneNumber,
-      reply: result.reply,
-      sent: true,
-      wasender
-    });
+        passOk("webhook");
+
+        return {
+          ok: true,
+          phone_number: phoneNumber,
+          reply: result.reply,
+          sent: true,
+          wasender
+        };
+      }
+    );
+
+    return res.json(responseBody);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     passFail("webhook", message);

@@ -6,6 +6,8 @@ export const config = {
   port: Number(process.env.PORT || 3000),
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   wasenderApiToken: process.env.WASENDER_API_TOKEN,
+  /** Minimum ms between outbound Wasender sends (account protection often limits ~1/5s). */
+  wasenderMinSendIntervalMs: Number(process.env.WASENDER_MIN_SEND_INTERVAL_MS || 5000),
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   memoryTtlMs: Number(process.env.MEMORY_TTL_MS || 30 * 60 * 1000),
@@ -22,7 +24,12 @@ export const config = {
    */
   devSessionIsolation:
     process.env.NODE_ENV !== "production" &&
-    (process.env.DEV_SESSION_ISOLATION ?? "true").toLowerCase() !== "false"
+    (process.env.DEV_SESSION_ISOLATION ?? "true").toLowerCase() !== "false",
+  /**
+   * Debounce inbound bursts (ms) so multiple short messages become one agent turn.
+   * Helps reduce both LLM churn and Wasender rate-limit hits during fast replies.
+   */
+  phoneMessageDebounceMs: Number(process.env.PHONE_MESSAGE_DEBOUNCE_MS || 600)
 };
 
 if (!config.anthropicApiKey) {
