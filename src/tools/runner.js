@@ -11,7 +11,7 @@ export async function runTool(name, input, ctx = {}) {
   let result;
   switch (name) {
     case "say_hold_on":
-      result = await sayHoldOn(input);
+      result = await sayHoldOn(input, ctx);
       break;
     case "get_service_categories":
       result = await getServiceCategories();

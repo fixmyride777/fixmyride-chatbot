@@ -11,7 +11,7 @@ if (devRunId) {
 
 /**
  * Maps the client session key (customer phone number, normalized) to the row key in Supabase.
- * In development, prefixes with a new UUID on each server restart so memory does not carry over.
+ * Optional dev-only prefix (DEV_SESSION_ISOLATION=true): new UUID each process start so memory resets on restart.
  */
 export function memorySessionKey(sessionId) {
   if (!sessionId) return null;

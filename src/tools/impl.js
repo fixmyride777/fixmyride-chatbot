@@ -13,15 +13,23 @@ function normalizeCustomerPhone(input) {
   return hasPlus ? `+${digits}` : digits;
 }
 
-export async function sayHoldOn({ phone, text }) {
+export async function sayHoldOn({ phone, text }, ctx = {}) {
+  const to =
+    normalizeCustomerPhone(phone) || normalizeCustomerPhone(ctx.customerPhoneNumber);
+
+  if (!to) {
+    return { ok: true, sent: false, skipped: "no_customer_phone" };
+  }
+
+  if (!config.wasenderApiToken) {
+    return { ok: true, sent: false, skipped: "no_wasender_token" };
+  }
+
   try {
-    const response = await axios.post(`https://fixmyride.app.n8n.cloud/webhook/say-hold-on-w`, {
-      phone,
-      text
-    });
-    return { ok: response.status === 200, sent: response.status === 200 };
+    await sendWasenderMessage({ to, text: String(text ?? "") });
+    return { ok: true, sent: true };
   } catch (error) {
-    return { ok: false, sent: false, error: error.message };
+    return { ok: false, sent: false, error: error?.message || String(error) };
   }
 }
 

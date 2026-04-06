@@ -17,14 +17,14 @@ export const config = {
     .map(s => s.trim())
     .filter(Boolean),
   /**
-   * In non-production, namespace stored session keys per process (dev:runUuid:yourKey).
-   * Each server restart gets a new run id → fresh chat memory (e.g. npm run dev / --watch).
-   * Session keys in storage are customer phone numbers (normalized).
-   * Production: always off. Dev: set DEV_SESSION_ISOLATION=false to keep memory across restarts.
+   * When true (non-production only): prefix Supabase session keys with a new UUID each process start
+   * so chat memory does not carry across server restarts (useful for --watch).
+   * Default false: same phone number keeps the same row after restart.
+   * Session keys in storage are customer phone numbers (normalized), unless prefixed.
    */
   devSessionIsolation:
     process.env.NODE_ENV !== "production" &&
-    (process.env.DEV_SESSION_ISOLATION ?? "true").toLowerCase() !== "false",
+    (process.env.DEV_SESSION_ISOLATION ?? "").toLowerCase() === "true",
   /**
    * Debounce inbound bursts (ms) so multiple short messages become one agent turn.
    * Helps reduce both LLM churn and Wasender rate-limit hits during fast replies.

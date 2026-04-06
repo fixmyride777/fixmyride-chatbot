@@ -1,14 +1,19 @@
 export const tools = [
   {
     name: "say_hold_on",
-    description: "Send a short wait message to the customer before a visible check.",
+    description:
+      "Send a short wait message to the customer on WhatsApp (Wasender). Phone is taken from the chat session when omitted.",
     input_schema: {
       type: "object",
       properties: {
-        phone: { type: "string" },
+        phone: {
+          type: "string",
+          description:
+            "Optional on WhatsApp: omit and the server uses the session customer phone from CONTEXT."
+        },
         text: { type: "string" }
       },
-      required: ["phone", "text"]
+      required: ["text"]
     }
   },
   {
