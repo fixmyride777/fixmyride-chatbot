@@ -47,16 +47,16 @@ export const tools = [
   {
     name: "get_fieldd_booking",
     description:
-      "Look up an existing Fieldd booking. Only call after the customer has provided the phone number used when the booking was created and/or an order/job reference (e.g. JOB12). WhatsApp: you may pass session phone as phone_number only if the customer confirms it is the same number used for the booking.",
+      "Look up an existing Fieldd booking. Only call after the customer has provided the phone number used when the booking was created and/or order_number (e.g. JOB12). WhatsApp: you may pass session phone as phone_number only if the customer confirms it is the same number used for the booking.",
     input_schema: {
       type: "object",
       properties: {
         phone_number: {
           type: "string",
           description:
-            "Phone used on the booking (E.164-style). Optional if order_reference is set or session phone is confirmed as the booking phone."
+            "Phone used on the booking (E.164-style). Optional if order_number is set or session phone is confirmed as the booking phone."
         },
-        order_reference: {
+        order_number: {
           type: "string",
           description: "Order or job id as shown to the customer, e.g. JOB12"
         }
@@ -67,12 +67,12 @@ export const tools = [
   {
     name: "get_fieldd_invoice",
     description:
-      "Look up invoice details for an order. Only call after phone and/or order reference is collected (same rules as get_fieldd_booking).",
+      "Look up invoice details for an order. Only call after phone_number and/or order_number is collected (same rules as get_fieldd_booking).",
     input_schema: {
       type: "object",
       properties: {
         phone_number: { type: "string" },
-        order_reference: { type: "string" }
+        order_number: { type: "string" }
       },
       required: []
     }
@@ -80,12 +80,12 @@ export const tools = [
   {
     name: "get_fieldd_payment",
     description:
-      "Look up payment status for an order. Only call after phone and/or order reference is collected (same rules as get_fieldd_booking).",
+      "Look up payment status for an order. Only call after phone_number and/or order_number is collected (same rules as get_fieldd_booking).",
     input_schema: {
       type: "object",
       properties: {
         phone_number: { type: "string" },
-        order_reference: { type: "string" }
+        order_number: { type: "string" }
       },
       required: []
     }

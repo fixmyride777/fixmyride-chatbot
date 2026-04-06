@@ -68,35 +68,42 @@ export async function classifyIssue(category, subcategory) {
 }
 
 const FIELDD_BOOKING_URL =
-  "https://fixmyride.app.n8n.cloud/webhook-test/get-fieldd-booking";
+  "https://fixmyride.app.n8n.cloud/webhook/get-fieldd-booking";
 const FIELDD_INVOICE_URL =
-  "https://fixmyride.app.n8n.cloud/webhook-test/get-fieldd-invoice";
+  "https://fixmyride.app.n8n.cloud/webhook/get-fieldd-invoice";
 const FIELDD_PAYMENT_URL =
-  "https://fixmyride.app.n8n.cloud/webhook-test/get-fieldd-payment";
+  "https://fixmyride.app.n8n.cloud/webhook/get-fieldd-payment";
 
 function fielddLookupPayload(input, ctx) {
   const fromTool = normalizeCustomerPhone(input?.phone_number);
   const fromSession = normalizeCustomerPhone(ctx?.customerPhoneNumber);
   const phone = fromTool || fromSession;
-  const orderRef = String(input?.order_reference ?? "").trim();
+  const orderNum = String(input?.order_number ?? "").trim();
   return {
     phone_number: phone || undefined,
-    order_reference: orderRef || undefined
+    order_number: orderNum || undefined
   };
 }
 
 async function callFielddLookup(url, input, ctx) {
-  const body = fielddLookupPayload(input, ctx);
-  if (!body.phone_number && !body.order_reference) {
+  const raw = fielddLookupPayload(input, ctx);
+  if (!raw.phone_number && !raw.order_number) {
     return {
       ok: false,
       result: null,
       error:
-        "Need the phone number used when the booking/order was created, or an order/job reference (e.g. JOB12). Ask the customer, then call again."
+        "Need phone_number or order_number (e.g. JOB12) used for the booking/order. Ask the customer, then call again."
     };
   }
+  const params = Object.fromEntries(
+    Object.entries(raw).filter(([, v]) => v != null && String(v).trim() !== "")
+  );
   try {
-    const response = await axios.post(url, body);
+    const path = new URL(url).pathname;
+    // eslint-disable-next-line no-console
+    console.log("[fieldd]", path);
+
+    const response = await axios.get(url, { params });
     return { ok: response.status === 200, result: response.data };
   } catch (error) {
     return { ok: false, result: null, error: error.message };
