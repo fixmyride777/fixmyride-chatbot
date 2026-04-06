@@ -45,6 +45,52 @@ export const tools = [
     }
   },
   {
+    name: "get_fieldd_booking",
+    description:
+      "Look up an existing Fieldd booking. Only call after the customer has provided the phone number used when the booking was created and/or an order/job reference (e.g. JOB12). WhatsApp: you may pass session phone as phone_number only if the customer confirms it is the same number used for the booking.",
+    input_schema: {
+      type: "object",
+      properties: {
+        phone_number: {
+          type: "string",
+          description:
+            "Phone used on the booking (E.164-style). Optional if order_reference is set or session phone is confirmed as the booking phone."
+        },
+        order_reference: {
+          type: "string",
+          description: "Order or job id as shown to the customer, e.g. JOB12"
+        }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_fieldd_invoice",
+    description:
+      "Look up invoice details for an order. Only call after phone and/or order reference is collected (same rules as get_fieldd_booking).",
+    input_schema: {
+      type: "object",
+      properties: {
+        phone_number: { type: "string" },
+        order_reference: { type: "string" }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_fieldd_payment",
+    description:
+      "Look up payment status for an order. Only call after phone and/or order reference is collected (same rules as get_fieldd_booking).",
+    input_schema: {
+      type: "object",
+      properties: {
+        phone_number: { type: "string" },
+        order_reference: { type: "string" }
+      },
+      required: []
+    }
+  },
+  {
     name: "handoff_human",
     description:
       "Escalate to a human agent with collected customer details (use when the request is outside the chatbot scope and pricing is quote-based). On WhatsApp, the customer's number is already known to the system—omit phone_number unless you have no session phone in CONTEXT.",

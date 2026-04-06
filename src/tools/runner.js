@@ -3,7 +3,10 @@ import {
   getServiceCategories,
   getServiceSubcategories,
   classifyIssue,
-  handoffHuman
+  handoffHuman,
+  getFielddBooking,
+  getFielddInvoice,
+  getFielddPayment
 } from "./impl.js";
 import { passFail, passOk } from "../passLog.js";
 
@@ -24,6 +27,15 @@ export async function runTool(name, input, ctx = {}) {
       break;
     case "handoff_human":
       result = await handoffHuman(input, ctx);
+      break;
+    case "get_fieldd_booking":
+      result = await getFielddBooking(input, ctx);
+      break;
+    case "get_fieldd_invoice":
+      result = await getFielddInvoice(input, ctx);
+      break;
+    case "get_fieldd_payment":
+      result = await getFielddPayment(input, ctx);
       break;
     default:
       passFail(`tool:${name}`, "unknown tool");

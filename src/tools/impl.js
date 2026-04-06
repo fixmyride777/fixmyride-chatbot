@@ -67,6 +67,54 @@ export async function classifyIssue(category, subcategory) {
   }
 }
 
+const FIELDD_BOOKING_URL =
+  "https://fixmyride.app.n8n.cloud/webhook-test/get-fieldd-booking";
+const FIELDD_INVOICE_URL =
+  "https://fixmyride.app.n8n.cloud/webhook-test/get-fieldd-invoice";
+const FIELDD_PAYMENT_URL =
+  "https://fixmyride.app.n8n.cloud/webhook-test/get-fieldd-payment";
+
+function fielddLookupPayload(input, ctx) {
+  const fromTool = normalizeCustomerPhone(input?.phone_number);
+  const fromSession = normalizeCustomerPhone(ctx?.customerPhoneNumber);
+  const phone = fromTool || fromSession;
+  const orderRef = String(input?.order_reference ?? "").trim();
+  return {
+    phone_number: phone || undefined,
+    order_reference: orderRef || undefined
+  };
+}
+
+async function callFielddLookup(url, input, ctx) {
+  const body = fielddLookupPayload(input, ctx);
+  if (!body.phone_number && !body.order_reference) {
+    return {
+      ok: false,
+      result: null,
+      error:
+        "Need the phone number used when the booking/order was created, or an order/job reference (e.g. JOB12). Ask the customer, then call again."
+    };
+  }
+  try {
+    const response = await axios.post(url, body);
+    return { ok: response.status === 200, result: response.data };
+  } catch (error) {
+    return { ok: false, result: null, error: error.message };
+  }
+}
+
+export async function getFielddBooking(input, ctx) {
+  return callFielddLookup(FIELDD_BOOKING_URL, input, ctx);
+}
+
+export async function getFielddInvoice(input, ctx) {
+  return callFielddLookup(FIELDD_INVOICE_URL, input, ctx);
+}
+
+export async function getFielddPayment(input, ctx) {
+  return callFielddLookup(FIELDD_PAYMENT_URL, input, ctx);
+}
+
 function formatAdvisorHandoffText(p) {
   const lines = [
     "FixMyRide — handoff",
