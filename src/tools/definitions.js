@@ -34,7 +34,8 @@ export const tools = [
   },
   {
     name: "classify_issue",
-    description: "Classifies the customer’s problem into a service category and get service rules and rule actions which the chatbot will act with.",
+    description:
+      "Classifies the issue and returns rule_actions from the admin dashboard. You must follow rule_actions exactly in order—only ask for customer name, vehicle make/model/year, booking, handoff, etc. when those steps appear in rule_actions. Do not add vehicle questions or other collection steps that are not listed there, even for quote-based pricing.",
     input_schema: {
       type: "object",
       properties: {
@@ -93,11 +94,15 @@ export const tools = [
   {
     name: "handoff_human",
     description:
-      "Escalate to a human agent with collected customer details (use when the request is outside the chatbot scope and pricing is quote-based). On WhatsApp, the customer's number is already known to the system—omit phone_number unless you have no session phone in CONTEXT.",
+      "Escalate to a human agent with collected customer details (use when the request is outside the chatbot scope and pricing is quote-based). Collect customer name and email before calling. On WhatsApp, the customer's number is already known to the system—omit phone_number unless you have no session phone in CONTEXT.",
     input_schema: {
       type: "object",
       properties: {
         customer_name: { type: "string" },
+        customer_email: {
+          type: "string",
+          description: "Customer email for the advisor to follow up."
+        },
         phone_number: {
           type: "string",
           description:
@@ -107,7 +112,7 @@ export const tools = [
         issue: { type: "string" },
         bot_summary: { type: "string" }
       },
-      required: ["customer_name", "issue", "bot_summary"]
+      required: ["customer_name", "customer_email", "issue", "bot_summary"]
     }
   }
 

@@ -68,11 +68,11 @@ export async function classifyIssue(category, subcategory) {
 }
 
 const FIELDD_BOOKING_URL =
-  "https://fixmyride.app.n8n.cloud/webhook/get-fieldd-booking";
+  "https://fixmyride.app.n8n.cloud/webhook/get-fieldd-booking-w";
 const FIELDD_INVOICE_URL =
-  "https://fixmyride.app.n8n.cloud/webhook/get-fieldd-invoice";
+  "https://fixmyride.app.n8n.cloud/webhook/get-fieldd-invoice-w";
 const FIELDD_PAYMENT_URL =
-  "https://fixmyride.app.n8n.cloud/webhook/get-fieldd-payment";
+  "https://fixmyride.app.n8n.cloud/webhook/get-fieldd-payment-w";
 
 function fielddLookupPayload(input, ctx) {
   const fromTool = normalizeCustomerPhone(input?.phone_number);
@@ -126,10 +126,12 @@ function formatAdvisorHandoffText(p) {
   const lines = [
     "FixMyRide — handoff",
     `Customer: ${p.customer_name}`,
+    p.customer_email ? `Email: ${p.customer_email}` : null,
     `Phone: ${p.phone_number}`,
     p.vehicle_info ? `Vehicle: ${p.vehicle_info}` : null,
     `Issue: ${p.issue}`,
-    `Summary: ${p.bot_summary}`
+    `Summary: ${p.bot_summary}`,
+    `Channel: WhatsApp chatbot`
   ].filter(Boolean);
   return lines.join("\n");
 }
@@ -159,6 +161,7 @@ export async function handoffHuman(payload, ctx = {}) {
 
     const body = {
       customer_name: payload.customer_name,
+      customer_email: payload.customer_email ?? "",
       phone_number: customerPhone,
       vehicle_info: payload.vehicle_info ?? "",
       issue: payload.issue,
