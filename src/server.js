@@ -106,8 +106,8 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const RunAgentBody = z.object({
   message: z.string().min(1),
+  /** Normalized and used as the only key for persisted AI memory (chat_sessions). */
   phone_number: z.string().min(1).optional(),
-  session_id: z.string().min(1).optional(),
   conversation: z.array(z.any()).optional(),
   model: z.string().optional(),
   max_tokens: z.number().int().positive().max(4096).optional()
@@ -118,24 +118,24 @@ app.post("/agent/run", async (req, res) => {
     const body = RunAgentBody.parse(req.body);
     await cleanupSessions();
 
-    const sessionId = body.phone_number || body.session_id || null;
-    const session = sessionId ? await getSession(sessionId) : null;
+    const phoneForSession = body.phone_number ? normalizePhone(body.phone_number) : null;
+    const session = phoneForSession ? await getSession(phoneForSession) : null;
     const conversation = trimConversation(body.conversation || session?.messages || []);
 
-    if (sessionId) {
+    if (phoneForSession) {
       passOk("session.load");
     }
 
     const result = await runAgent({
       userMessage: body.message,
       conversation,
-      customerPhoneNumber: body.phone_number ? normalizePhone(body.phone_number) : undefined,
+      customerPhoneNumber: phoneForSession || undefined,
       model: body.model,
       maxTokens: body.max_tokens
     });
 
-    if (sessionId) {
-      await setSession(sessionId, trimConversation(result.messages));
+    if (phoneForSession) {
+      await setSession(phoneForSession, trimConversation(result.messages));
       passOk("session.save");
     }
 

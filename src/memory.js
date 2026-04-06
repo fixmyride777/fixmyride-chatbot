@@ -10,7 +10,7 @@ if (devRunId) {
 }
 
 /**
- * Maps the client session key (e.g. phone number or session_id) to the row key in Supabase.
+ * Maps the client session key (customer phone number, normalized) to the row key in Supabase.
  * In development, prefixes with a new UUID on each server restart so memory does not carry over.
  */
 export function memorySessionKey(sessionId) {

@@ -19,7 +19,7 @@ export const config = {
   /**
    * In non-production, namespace stored session keys per process (dev:runUuid:yourKey).
    * Each server restart gets a new run id → fresh chat memory (e.g. npm run dev / --watch).
-   * Works with any session key you pass (phone number, session_id, etc.).
+   * Session keys in storage are customer phone numbers (normalized).
    * Production: always off. Dev: set DEV_SESSION_ISOLATION=false to keep memory across restarts.
    */
   devSessionIsolation:
